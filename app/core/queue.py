@@ -72,23 +72,36 @@ async def process_job(job: Job):
                 
             # Upload
             job.status = "uploading"
-            up_tracker = ProgressTracker(status_msg, "📤 Yuklanmoqda...")
+            up_tracker = ProgressTracker(status_msg, "📤 Serverga yuklanmoqda...")
             
-            width = 1280
-            height = 720
-            # Simple fallback sizes based on quality string
+            user_client = client.user_client  # bot.py da ulab qo'ygan edik
+            
+            width, height = 1280, 720
             if job.quality == "480p": width, height = 854, 480
             elif job.quality == "360p": width, height = 640, 360
             
-            await client.send_video(
-                chat_id=job.user_id,
+            # 1. User akkaunt videoni yopiq Dump kanalga yuklaydi
+            dump_message = await user_client.send_video(
+                chat_id=DUMP_CHAT_ID,
                 video=str(output_path),
-                caption=f"🎬 {output_filename}\n📺 Quality: {job.quality}\n⏱ Duration: {int(job.duration//60):02d}:{int(job.duration%60):02d}",
+                caption=f"🎬 {output_filename} | Sifat: {job.quality}",
                 thumb=job.thumbnail,
                 width=width,
                 height=height,
                 duration=int(job.duration),
                 progress=up_tracker.update
+            )
+            
+            await status_msg.edit_text("🔄 Videoni sizga yubormoqdamiz...")
+            
+            # 2. Bot videoni Dump kanaldan olib, foydalanuvchiga forward/copy qiladi
+            caption_text = f"🎬 {output_filename}\n📺 Quality: {job.quality}\n⏱ Duration: {int(job.duration//60):02d}:{int(job.duration%60):02d}"
+            
+            await client.copy_message(
+                chat_id=job.user_id,
+                from_chat_id=DUMP_CHAT_ID,
+                message_id=dump_message.id,
+                caption=caption_text
             )
             
             await status_msg.delete()
