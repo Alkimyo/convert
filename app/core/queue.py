@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import os
-from app.config import DOWNLOAD_DIR, OUTPUT_DIR, MAX_CONCURRENT
+from app.config import DOWNLOAD_DIR, OUTPUT_DIR, MAX_CONCURRENT, DUMP_CHAT_ID
 from app.core.jobs import user_jobs, Job
 from app.core.cleanup import cleanup_job_files
 from app.services.ffmpeg import convert_video
