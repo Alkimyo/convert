@@ -1,3 +1,4 @@
+
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -9,6 +10,14 @@ API_ID = int(os.getenv("API_ID", 0))
 API_HASH = os.getenv("API_HASH")
 ALLOWED_USERS = [int(u.strip()) for u in os.getenv("ALLOWED_USERS", "").split(",") if u.strip()]
 MAX_CONCURRENT = int(os.getenv("MAX_CONCURRENT_CONVERSIONS", 1))
+
+# YANGI O'ZGARUVCHILAR
+USER_SESSION = os.getenv("USER_SESSION")
+DUMP_CHAT_ID = int(os.getenv("DUMP_CHAT_ID", 0))
+
+# ... Qolgan direktoriya kodlari o'zgarishsiz qoladi
+
+
 
 BASE_DIR = Path(__file__).parent.parent
 DOWNLOAD_DIR = BASE_DIR / os.getenv("DOWNLOAD_DIR", "downloads")
