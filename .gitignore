@@ -1,0 +1,11 @@
+.env
+*.session
+*.session-journal
+downloads/
+outputs/
+temp/
+logs/
+thumbnails/
+__pycache__/
+*.pyc
+bot.db

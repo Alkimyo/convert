@@ -1,0 +1,14 @@
+version: '3.8'
+services:
+  bot:
+    build: .
+    restart: unless-stopped
+    volumes:
+      - .:/app
+      - ./downloads:/app/downloads
+      - ./outputs:/app/outputs
+      - ./thumbnails:/app/thumbnails
+      - ./logs:/app/logs
+      - ./temp:/app/temp
+    env_file:
+      - .env
