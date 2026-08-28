@@ -1,3 +1,4 @@
+%%writefile app/bot.py
 import asyncio
 import logging
 import signal
@@ -6,23 +7,22 @@ from app.config import BOT_TOKEN, API_ID, API_HASH, USER_SESSION
 from app.database import init_db
 from app.core.queue import worker
 
-# 1-MUHIM TUZATISH: Bot xabarlarga javob berishi uchun handlerlar import qilinishi shart!
-from app.handlers import start, video, quality, filename, thumbnail, cancel
-
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 async def main():
     await init_db()
     
-    # Bot va User clientlarni sozlash
+    # 1. Bot Client
     bot_client = Client(
         "video_converter_bot",
         api_id=API_ID,
         api_hash=API_HASH,
-        bot_token=BOT_TOKEN
+        bot_token=BOT_TOKEN,
+        plugins=dict(root="app.handlers")  # <--- ENG MUHIM QISM SHU YERDA QO'SHILDI
     )
     
+    # 2. User Client
     user_client = Client(
         "user_uploader",
         api_id=API_ID,
@@ -39,7 +39,6 @@ async def main():
     
     asyncio.create_task(worker())
     
-    # 2-MUHIM TUZATISH: pyrogram.idle() o'rniga xavfsiz (xatolik bermaydigan) kutish usuli
     stop_event = asyncio.Event()
     loop = asyncio.get_running_loop()
     
