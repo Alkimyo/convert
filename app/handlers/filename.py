@@ -16,7 +16,7 @@ async def select_filename_type(client: Client, callback: CallbackQuery):
     
     if choice == "default":
         name, ext = os.path.splitext(job.original_filename)
-        job.custom_filename = sanitize_filename(f"{name}_{job.quality}.mp4")
+        job.custom_filename = sanitize_filename(f"{name} {job.quality}.mp4")
         job.status = "queued"
         await callback.message.edit_text("⏳ Navbatga qo'shildi.")
         await job_queue.put(job)
