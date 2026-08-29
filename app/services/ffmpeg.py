@@ -1,16 +1,16 @@
 import asyncio
-import re
 import time
 from app.core.jobs import Job
 from pyrogram.types import Message
 
 QUALITY_SETTINGS = {
-    "720p": {"crf": "22", "maxrate": "2500k", "bufsize": "5000k", "audio": "128k", "height": 720},
-    "540p": {"crf": "22", "maxrate": "1800k", "bufsize": "3600k", "audio": "96k", "height": 540},
-    "480p": {"crf": "23", "maxrate": "1400k", "bufsize": "2800k", "audio": "96k", "height": 480},
-    "360p": {"crf": "23", "maxrate": "900k", "bufsize": "1800k", "audio": "64k", "height": 360},
-    "240p": {"crf": "24", "maxrate": "500k", "bufsize": "1000k", "audio": "48k", "height": 240},
-    "144p": {"crf": "25", "maxrate": "250k", "bufsize": "500k", "audio": "32k", "height": 144},
+    # Tezlikni oshirish uchun bitreytlar va audio sifatini minimum darajada ushladik
+    "720p": {"crf": "25", "maxrate": "1500k", "bufsize": "3000k", "audio": "96k", "height": 720},
+    "540p": {"crf": "25", "maxrate": "1000k", "bufsize": "2000k", "audio": "64k", "height": 540},
+    "480p": {"crf": "26", "maxrate": "800k",  "bufsize": "1600k", "audio": "64k", "height": 480},
+    "360p": {"crf": "26", "maxrate": "500k",  "bufsize": "1000k", "audio": "48k", "height": 360},
+    "240p": {"crf": "28", "maxrate": "300k",  "bufsize": "600k",  "audio": "32k", "height": 240},
+    "144p": {"crf": "30", "maxrate": "150k",  "bufsize": "300k",  "audio": "24k", "height": 144},
 }
 
 async def convert_video(job: Job, input_path: str, output_path: str, status_msg: Message, has_audio: bool) -> bool:
@@ -18,17 +18,22 @@ async def convert_video(job: Job, input_path: str, output_path: str, status_msg:
     
     cmd = [
         "ffmpeg", "-y", "-i", input_path,
-        "-c:v", "libx264", "-preset", "medium",
+        "-c:v", "libx264", 
+        "-preset", "ultrafast",   # ENG TEZKOR REJIM
+        "-tune", "fastdecode",    # TEZKOR DEKODLASH UCHUN MAXSUS PARAMETR
+        "-threads", "0",          # BARCHA YADROLAR
         "-crf", settings["crf"],
         "-maxrate", settings["maxrate"],
         "-bufsize", settings["bufsize"],
-        "-vf", f"scale=-2:{settings['height']}",
+        # MUHIM: fps=24 qildik (sekundiga 24 kadr) - bu tezlikni keskin oshiradi!
+        "-vf", f"scale=-2:{settings['height']}:flags=fast_bilinear,fps=24", 
         "-movflags", "+faststart",
         "-progress", "pipe:1"
     ]
     
     if has_audio:
-        cmd.extend(["-c:a", "aac", "-b:a", settings["audio"]])
+        # Ovozni oddiy stereo ga o'tkazib, tezlikni tejaymiz
+        cmd.extend(["-c:a", "aac", "-b:a", settings["audio"], "-ac", "2"])
     else:
         cmd.extend(["-an"])
         
@@ -72,12 +77,12 @@ async def convert_video(job: Job, input_path: str, output_path: str, status_msg:
                     bar = "█" * filled + "░" * (bar_length - filled)
                     
                     text = (
-                        f"⚙️ {job.quality} tayyorlanmoqda...\n"
+                        f"⚡ <b>Tezkor Rejim ({job.quality})</b>\n"
                         f"{bar} {percent:.1f}%\n"
                         f"⏱ ETA: {eta_m:02d}:{eta_s:02d}"
                     )
                     try:
-                        await status_msg.edit_text(text)
+                        await status_msg.edit_text(text, parse_mode="html")
                     except Exception:
                         pass
             except Exception:
