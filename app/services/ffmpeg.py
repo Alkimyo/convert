@@ -6,12 +6,12 @@ from pyrogram.types import Message
 
 # YUQORI CRF (Kichik hajm) saqlab qolindi
 QUALITY_SETTINGS = {
-    "720p": {"crf": "28", "audio": "128k", "height": 720},
-    "540p": {"crf": "29", "audio": "96k",  "height": 540},
-    "480p": {"crf": "30", "audio": "96k",  "height": 480},
-    "360p": {"crf": "32", "audio": "64k",  "height": 360},
-    "240p": {"crf": "34", "audio": "48k",  "height": 240},
-    "144p": {"crf": "36", "audio": "32k",  "height": 144},
+    "720p": {"crf": "27", "audio": "128k", "height": 720},
+    "540p": {"crf": "28", "audio": "96k",  "height": 540},
+    "480p": {"crf": "29", "audio": "96k",  "height": 480},
+    "360p": {"crf": "30", "audio": "64k",  "height": 360},
+    "240p": {"crf": "32", "audio": "48k",  "height": 240},
+    "144p": {"crf": "34", "audio": "32k",  "height": 144},
 }
 
 async def convert_video(job: Job, input_path: str, output_path: str, status_msg: Message, has_audio: bool) -> bool:
