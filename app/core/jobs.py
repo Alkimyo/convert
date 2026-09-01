@@ -1,4 +1,3 @@
-%%writefile app/core/jobs.py
 import time
 from typing import Optional
 from pyrogram.types import Message
