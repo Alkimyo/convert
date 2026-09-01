@@ -32,6 +32,6 @@ async def help_cmd(client: Client, message: Message):
     )
     await message.reply_text(text, parse_mode="markdown")
 
-@Client.on_message(filters.command("id") & filters.private)
+@Client.on_message(filters.command("id") & filters.private,group=-1)
 async def id_cmd(client: Client, message: Message):
     await message.reply_text(f"Sizning ID: `{message.from_user.id}`")
