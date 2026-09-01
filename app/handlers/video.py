@@ -1,5 +1,4 @@
 
-           %%writefile app/handlers/video.py
 import logging
 import asyncio
 from pyrogram import Client, filters, StopPropagation
