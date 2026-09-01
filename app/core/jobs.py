@@ -1,29 +1,32 @@
-import uuid
+%%writefile app/core/jobs.py
 import time
-from dataclasses import dataclass
 from typing import Optional
 from pyrogram.types import Message
 
-@dataclass
 class Job:
-    user_id: int
-    message: Message
-    input_file_id: str
-    original_filename: str
-    file_size: int
-    job_id: str = ""
-    status: str = "waiting"
-    original_width: int = 0
-    original_height: int = 0
-    duration: float = 0.0
-    quality: str = ""
-    custom_filename: str = ""
-    thumbnail: Optional[str] = None
-    process = None  # asyncio subprocess
-    
-    def __post_init__(self):
-        if not self.job_id:
-            self.job_id = uuid.uuid4().hex
+    def __init__(self, user_id: int, message: Message, input_file_id: str,
+                 original_filename: str, file_size: int, original_width: int,
+                 original_height: int, duration: int, video_url: str = None,
+                 tg_chat_id = None, tg_message_id = None):
+        self.job_id = f"{int(time.time())}_{user_id}"
+        self.user_id = user_id
+        self.message = message
+        self.input_file_id = input_file_id
+        self.original_filename = original_filename
+        self.file_size = file_size
+        self.original_width = original_width
+        self.original_height = original_height
+        self.duration = duration
+        self.video_url = video_url
+        
+        # TELEGRAM LINKLAR UCHUN YANGI QATORLAR
+        self.tg_chat_id = tg_chat_id
+        self.tg_message_id = tg_message_id
+        
+        self.quality: Optional[str] = None
+        self.custom_filename: Optional[str] = None
+        self.status = "pending"
+        self.process = None
+        self.thumbnail: Optional[str] = None
 
-# State management
-user_jobs = {}  # user_id -> Job
+user_jobs = {}
