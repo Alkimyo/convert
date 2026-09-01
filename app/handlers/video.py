@@ -1,4 +1,3 @@
-%%writefile app/handlers/video.py
 import logging
 import asyncio
 import yt_dlp
