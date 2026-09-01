@@ -12,7 +12,7 @@ async def start_cmd(client: Client, message: Message):
     await message.reply_text("👋 Assalomu alaykum!\n\nMenga istalgan video yuboring yoki video linkini (Telegram/YouTube) tashlang, men uni o'lchamini kichraytirib va sifatini sozlab beraman.")
     raise StopPropagation
 
-@Client.on_message(filters.command("help") & filters.private)
+@Client.on_message(filters.command("help") & filters.private,group=-1)
 async def help_cmd(client: Client, message: Message):
     if message.from_user.id not in ALLOWED_USERS:
         return
