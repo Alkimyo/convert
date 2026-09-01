@@ -1,7 +1,10 @@
+%%writefile app/handlers/video.py
 import logging
 import asyncio
 import yt_dlp
 from pyrogram import Client, filters
+from pyrogram.handlers.message_handler import MessageHandler
+from pyrogram import StopPropagation
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from app.config import ALLOWED_USERS
 from app.core.jobs import Job, user_jobs
@@ -41,16 +44,20 @@ async def handle_video(client: Client, message: Message):
     text = f"🎬 Video qabul qilindi\n📐 Res: {width}×{height}\n🎞 Orig: {orig_quality_str}\n⏱ Dur: {int(duration//60):02d}:{int(duration%60):02d}\n\n⬇️ Sifatni tanlang:"
     await message.reply_text(text, reply_markup=get_inline_keyboard(max_dim))
 
-# 2. LINKLAR UCHUN MAXSUS HANDLER
-@Client.on_message(filters.text & filters.private & filters.regex(r"^https?://"))
+# 2. LINKLAR UCHUN MAXSUS HANDLER (group=-1 MUHIM!)
+@Client.on_message(filters.text & filters.private & filters.regex(r"https?://"), group=-1)
 async def handle_link(client: Client, message: Message):
     user_id = message.from_user.id
-    if user_id not in ALLOWED_USERS: return
-    if user_id in user_jobs: return await message.reply_text("⏳ Faol video mavjud.")
+    if user_id not in ALLOWED_USERS: 
+        raise StopPropagation
+        
+    if user_id in user_jobs: 
+        await message.reply_text("⏳ Sizda allaqachon faol video mavjud.")
+        raise StopPropagation
 
     url = message.text.strip()
     
-    # 🌟 A. TELEGRAM LINK HOLATI (Botlar, guruhlar va kanallar uchun)
+    # 🌟 A. TELEGRAM LINK HOLATI
     if "t.me/" in url or "telegram.me/" in url:
         status_msg = await message.reply_text("🔍 Telegram xabar tekshirilmoqda...")
         try:
@@ -58,20 +65,18 @@ async def handle_link(client: Client, message: Message):
             parts = [p for p in url_clean.split("/") if p]
             msg_id = int(parts[-1])
             
-            # Agar yopiq kanal bo'lsa (c qatnashadi)
             if "c" in parts:
                 chat_id_str = parts[parts.index("c") + 1]
                 chat_id = int(f"-100{chat_id_str}")
             else:
-                # Bot yoki ochiq kanal bo'lsa, messagedan bitta oldingi so'z - doim username bo'ladi!
-                # Bu t.me/@dramlaruzbekbot/123 formatini mutlaqo xatosiz o'qiydi.
                 chat_id = parts[-2]
             
             user_client = client.user_client
             tg_msg = await user_client.get_messages(chat_id, msg_id)
             
             if not tg_msg or not tg_msg.video:
-                return await status_msg.edit_text("❌ Ushbu linkda video topilmadi!")
+                await status_msg.edit_text("❌ Ushbu linkda video topilmadi!")
+                raise StopPropagation
                 
             video = tg_msg.video
             width, height, duration = video.width, video.height, video.duration
@@ -116,3 +121,6 @@ async def handle_link(client: Client, message: Message):
         except Exception as e:
             logger.error(f"Link xatosi: {e}")
             await status_msg.edit_text("❌ Linkni o'qib bo'lmadi yoki video format qo'llab-quvvatlanmaydi.")
+            
+    # BOSHQA FAYLLAR ARALASHMASLIGI UCHUN XABARNI UZAMIZ
+    raise StopPropagation
