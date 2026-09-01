@@ -1,6 +1,5 @@
 
-from pyrogram import Client, filters
-from pyrogram.exceptions import StopPropagation
+from pyrogram import Client, filters, StopPropagation
 from pyrogram.types import Message
 from app.config import ALLOWED_USERS
 
