@@ -1,8 +1,8 @@
-%%writefile app/handlers/video.py
+
+           %%writefile app/handlers/video.py
 import logging
 import asyncio
-from pyrogram import Client, filters
-from pyrogram.exceptions import StopPropagation
+from pyrogram import Client, filters, StopPropagation
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from app.config import ALLOWED_USERS
 from app.core.jobs import Job, user_jobs
@@ -42,7 +42,7 @@ async def handle_video(client: Client, message: Message):
 
     text = f"🎬 Video qabul qilindi\n📐 Res: {width}×{height}\n🎞 Orig: {orig_quality_str}\n⏱ Dur: {int(duration//60):02d}:{int(duration%60):02d}\n\n⬇️ Sifatni tanlang:"
     await message.reply_text(text, reply_markup=get_inline_keyboard(max_dim))
-    raise StopPropagation  # Boshqa fayllarga ketishini to'xtatamiz
+    raise StopPropagation
 
 # LINK QABUL QILISH (-1 GURUH)
 @Client.on_message(filters.text & filters.private & filters.regex(r"https?://"), group=-1)
@@ -116,4 +116,4 @@ async def handle_link(client: Client, message: Message):
         except Exception as e:
             await status_msg.edit_text("❌ Linkni o'qib bo'lmadi yoki video format qo'llab-quvvatlanmaydi.")
             
-    raise StopPropagation  # Boshqa fayllarga ketishini to'xtatamiz
+    raise StopPropagation
