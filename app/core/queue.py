@@ -1,4 +1,3 @@
-%%writefile app/core/queue.py
 import asyncio
 import logging
 import os
