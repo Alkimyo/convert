@@ -1,3 +1,4 @@
+%%writefile app/core/queue.py
 import asyncio
 import logging
 import os
@@ -30,11 +31,12 @@ async def process_job(job: Job):
             status_msg = await job.message.reply_text("⬇️ Yuklanish tayyorlanmoqda...")
             job.status = "downloading"
             
+            # --- DUMP KANAL ---
             target_chat_id = app.config.DUMP_CHAT_ID
             try:
                 if not target_chat_id: raise ValueError("ID yo'q")
                 await user_client.get_chat(target_chat_id)
-            except Exception as e:
+            except Exception:
                 new_channel = await user_client.create_channel("Video Dump", "Bot bazasi")
                 target_chat_id = new_channel.id
                 await user_client.promote_chat_member(
@@ -47,7 +49,7 @@ async def process_job(job: Job):
             input_path = job_dir / "input.mp4"
             out_dir = OUTPUT_DIR / job.job_id
             out_dir.mkdir(parents=True, exist_ok=True)
-            output_path = out_dir / job.custom_filename
+            output_path = out_dir / (job.custom_filename or "video.mp4")
             
             # --- YUKLAB OLISH LOGIKASI ---
             if job.video_url:
@@ -59,16 +61,14 @@ async def process_job(job: Job):
                 await asyncio.to_thread(download_video)
                 
             elif job.tg_chat_id and job.tg_message_id:
-                # TELEGRAM LINKDAN YUKLAB OLISH (Eng yangi qo'shilgan qism!)
-                dump_in_msg = await user_client.copy_message(
-                    chat_id=target_chat_id, from_chat_id=job.tg_chat_id, message_id=job.tg_message_id
-                )
-                user_in_msg = await user_client.get_messages(target_chat_id, dump_in_msg.id)
-                tracker = ProgressTracker(status_msg, "⬇️ Boshqa chatdan tezkor yuklanmoqda...")
-                await user_client.download_media(user_in_msg, file_name=str(input_path), progress=tracker.update)
+                # 🌟 HIMOYA QILINGAN KANALLAR UCHUN TO'G'RIDAN-TO'G'RI YUKLASH 🌟
+                # (Bu yerda copy_message umuman ishlatilmaydi!)
+                source_msg = await user_client.get_messages(job.tg_chat_id, job.tg_message_id)
+                tracker = ProgressTracker(status_msg, "⬇️ Himoyalangan chatdan to'g'ridan-to'g'ri yuklanmoqda...")
+                await user_client.download_media(source_msg, file_name=str(input_path), progress=tracker.update)
                 
             else:
-                # TO'G'RIDAN-TO'G'RI YUBORILGAN VIDEODAN
+                # TO'G'RIDAN TO'G'RI BOTGA TASHLANGAN VIDEOLAR
                 dump_in_msg = await client.copy_message(
                     chat_id=target_chat_id, from_chat_id=job.message.chat.id, message_id=job.message.id
                 )
@@ -106,7 +106,7 @@ async def process_job(job: Job):
             elif job.quality == "240p": width, height = 426, 240
             elif job.quality == "144p": width, height = 256, 144
             
-            caption_text = f"🎬 {job.custom_filename}\n📺 Quality: {job.quality}\n⏱ Duration: {int(job.duration//60):02d}:{int(job.duration%60):02d}"
+            caption_text = f"🎬 {job.custom_filename or 'video'}\n📺 Quality: {job.quality}\n⏱ Duration: {int(job.duration//60):02d}:{int(job.duration%60):02d}"
             
             dump_out_msg = await user_client.send_video(
                 chat_id=target_chat_id, video=str(output_path), caption=caption_text,
