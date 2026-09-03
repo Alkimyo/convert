@@ -1,4 +1,4 @@
-
+%%writefile app/handlers/video.py
 import logging
 import asyncio
 from pyrogram import Client, filters, StopPropagation
@@ -23,23 +23,31 @@ def get_inline_keyboard(max_dim):
     return InlineKeyboardMarkup(buttons)
 
 # VIDEO QABUL QILISH (-1 GURUH)
-@Client.on_message(filters.video & filters.private, group=-1)
+@Client.on_message((filters.video | filters.document) & filters.private, group=-1)
 async def handle_video(client: Client, message: Message):
     user_id = message.from_user.id
     if user_id not in ALLOWED_USERS: raise StopPropagation
+    
+    media = message.video or message.document
+    if message.document and "video" not in (message.document.mime_type or ""):
+        # Agar bu umuman video bo'lmagan boshqa fayl bo'lsa
+        raise StopPropagation
+
     if user_id in user_jobs: 
         await message.reply_text("⏳ Faol video mavjud.")
         raise StopPropagation
 
-    width, height = message.video.width, message.video.height
-    duration, max_dim = message.video.duration, max(width, height)
-    orig_name = message.video.file_name or "video.mp4"
+    width = getattr(media, "width", 1280) or 1280
+    height = getattr(media, "height", 720) or 720
+    duration = getattr(media, "duration", 0) or 0
+    max_dim = max(width, height)
+    orig_name = getattr(media, "file_name", "video.mp4") or "video.mp4"
     orig_quality_str = next((q[0] for q in QUALITIES if max_dim >= q[1] - 100), "Unknown")
 
-    job = Job(user_id, message, message.video.file_id, orig_name, message.video.file_size, width, height, duration)
+    job = Job(user_id, message, media.file_id, orig_name, media.file_size, width, height, duration)
     user_jobs[user_id] = job
 
-    text = f"🎬 Video qabul qilindi\n📐 Res: {width}×{height}\n🎞 Orig: {orig_quality_str}\n⏱ Dur: {int(duration//60):02d}:{int(duration%60):02d}\n\n⬇️ Sifatni tanlang:"
+    text = f"🎬 Video qabul qilindi\n📝 {orig_name[:30]}\n📐 Res: {width}×{height}\n🎞 Orig: {orig_quality_str}\n\n⬇️ Sifatni tanlang:"
     await message.reply_text(text, reply_markup=get_inline_keyboard(max_dim))
     raise StopPropagation
 
@@ -70,25 +78,37 @@ async def handle_link(client: Client, message: Message):
             user_client = client.user_client
             tg_msg = await user_client.get_messages(chat_id, msg_id)
             
-            if not tg_msg or not tg_msg.video:
-                await status_msg.edit_text("❌ Ushbu linkda video topilmadi!")
+            # VIDEO YOKI HUJJAT (DOCUMENT) EKANLIGINI TEKSHIRISH
+            media = None
+            if tg_msg:
+                if tg_msg.video:
+                    media = tg_msg.video
+                elif tg_msg.document and "video" in (tg_msg.document.mime_type or ""):
+                    media = tg_msg.document
+            
+            if not media:
+                await status_msg.edit_text("❌ Ushbu linkda video yoki MP4 fayl topilmadi!")
                 raise StopPropagation
                 
-            video = tg_msg.video
-            width, height, duration = video.width, video.height, video.duration
+            width = getattr(media, "width", 1280) or 1280
+            height = getattr(media, "height", 720) or 720
+            duration = getattr(media, "duration", 0) or 0
             max_dim = max(width, height)
-            orig_name = video.file_name or "tg_video.mp4"
-            file_size = video.file_size
+            orig_name = getattr(media, "file_name", "tg_video.mp4") or "tg_video.mp4"
+            file_size = media.file_size
             orig_quality_str = next((q[0] for q in QUALITIES if max_dim >= q[1] - 100), "Unknown")
             
-            job = Job(user_id, message, video.file_id, orig_name, file_size, width, height, duration, tg_chat_id=chat_id, tg_message_id=msg_id)
+            job = Job(user_id, message, media.file_id, orig_name, file_size, width, height, duration, tg_chat_id=chat_id, tg_message_id=msg_id)
             user_jobs[user_id] = job
             
-            text = f"🔗 Telegram Video topildi\n📝 Nomi: {orig_name[:40]}\n📐 Res: {width}×{height}\n🎞 Orig: {orig_quality_str}\n⏱ Dur: {int(duration//60):02d}:{int(duration%60):02d}\n\n⬇️ Sifatni tanlang:"
+            text = f"🔗 Telegram Video topildi\n📝 Nomi: {orig_name[:40]}\n📐 Res: {width}×{height}\n🎞 Orig: {orig_quality_str}\n\n⬇️ Sifatni tanlang:"
             await status_msg.delete()
             await message.reply_text(text, reply_markup=get_inline_keyboard(max_dim))
+            
+        except StopPropagation:
+            raise  # Qulfni xato sifatida ushlab qolmasligi uchun uni o'tkazib yuboramiz
         except Exception as e:
-            await status_msg.edit_text(f"❌ Xatolik! Bu linkdagi video mavjud emas yoki ruxsat yo'q.\n({e})")
+            await status_msg.edit_text(f"❌ Xatolik! Bu linkdagi video mavjud emas yoki User Session u bot/kanalni ko'ra olmaydi.\n(Xato: {type(e).__name__})")
             
     # WEB LINK (YouTube, Insta, MP4)
     else:
@@ -109,9 +129,11 @@ async def handle_link(client: Client, message: Message):
             job = Job(user_id, message, "url", orig_name, file_size, width, height, duration, video_url=url)
             user_jobs[user_id] = job
 
-            text = f"🔗 Veb Video topildi\n📝 Nomi: {orig_name[:40]}\n📐 Res: {width}×{height}\n🎞 Orig: {orig_quality_str}\n⏱ Dur: {int(duration//60):02d}:{int(duration%60):02d}\n\n⬇️ Sifatni tanlang:"
+            text = f"🔗 Veb Video topildi\n📝 Nomi: {orig_name[:40]}\n📐 Res: {width}×{height}\n🎞 Orig: {orig_quality_str}\n\n⬇️ Sifatni tanlang:"
             await status_msg.delete()
             await message.reply_text(text, reply_markup=get_inline_keyboard(max_dim))
+        except StopPropagation:
+            raise
         except Exception as e:
             await status_msg.edit_text("❌ Linkni o'qib bo'lmadi yoki video format qo'llab-quvvatlanmaydi.")
             
